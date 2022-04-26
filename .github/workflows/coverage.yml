@@ -23,14 +23,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install coverage
       - name: Generate coverage report
         run: |
           coverage run --source=./ -m unittest discover -p "*_test.py"
-          coverage xml
+          coverage report
 
       - name: Upload coverage to code climate
         env:
-          CODECLIMATE_REPO_TOKEN: d40ac72ef1f8996bb3eef00c35ab4d2a25bc2342adcc517e1863638171385f6c
+          CODECLIMATE_REPO_TOKEN: 2724c2d8e4395f095c031f068862d2251977732d
         run: |
           codeclimate-test-reporter
