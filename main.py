@@ -6,3 +6,4 @@ def helloworld(a):
 
 if __name__ == "__main__":  # pragma: no cover
     helloworld("Hong")
+    assert helloworld("Hongmin")
