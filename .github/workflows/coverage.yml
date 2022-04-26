@@ -28,10 +28,12 @@ jobs:
       - name: Generate coverage report
         run: |
           coverage run --source=./ -m unittest discover -p "*_test.py"
-          coverage report
+          coverage xml
 
       - name: Upload coverage to code climate
         env:
-          CODECLIMATE_REPO_TOKEN: 2724c2d8e4395f095c031f068862d2251977732d
+          CODECLIMATE_REPO_TOKEN: c1600c178efe93dc60b74ed4d83661603072086ac5d39c652fcf7609ab66bcb9
         run: |
+          curl -L -O https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
+          sudo install test-reporter-latest-linux-amd64 /usr/local/bin/codeclimate-test-reporter
           codeclimate-test-reporter
