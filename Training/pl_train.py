@@ -16,30 +16,34 @@ from pytorch_lightning.callbacks import (
 parser = ArgumentParser()
 
 # Train hyperparams
-parser.add_argument("--gpus", default=-1, type=int,
-                    help="num of gpus")
-parser.add_argument("--max_epochs", default=30, type=int,
-                    help="training max epochs")
-parser.add_argument("--num_classes", default=10, type=int,
-                    help="num_classes")
-parser.add_argument('--train_batch_size', type=int, default=256, metavar='N',
-                    help='batch size / num_gpus')
-parser.add_argument('--train_num_workers', type=int, default=10, metavar='N',
-                    help='number of workers')
-parser.add_argument('--val_batch_size', type=int, default=256, metavar='N',
-                    help='batch size / num_gpus')
-parser.add_argument('--val_num_workers', type=int, default=10, metavar='N',
-                    help='number of workers')
-parser.add_argument('--lr', type=float, default=1e-3, metavar='N',
-                    help='learning rate')
+parser.add_argument("--gpus", default=-1, type=int, help="num of gpus")
+parser.add_argument("--max_epochs", default=30, type=int, help="training max epochs")
+parser.add_argument("--num_classes", default=10, type=int, help="num_classes")
+parser.add_argument(
+    "--train_batch_size",
+    type=int,
+    default=256,
+    metavar="N",
+    help="batch size / num_gpus",
+)
+parser.add_argument(
+    "--train_num_workers", type=int, default=10, metavar="N", help="number of workers"
+)
+parser.add_argument(
+    "--val_batch_size", type=int, default=256, metavar="N", help="batch size / num_gpus"
+)
+parser.add_argument(
+    "--val_num_workers", type=int, default=10, metavar="N", help="number of workers"
+)
+parser.add_argument("--lr", type=float, default=1e-3, metavar="N", help="learning rate")
 
 # log args
 parser.add_argument(
-    '--check_val_every_n_epoch',
+    "--check_val_every_n_epoch",
     type=int,
     default=10,
-    metavar='N',
-    help='checkpoint period',
+    metavar="N",
+    help="checkpoint period",
 )
 
 parser.add_argument(
@@ -94,7 +98,6 @@ parser.add_argument(
 )
 
 
-
 if __name__ == "__main__":
     # parser = pl.Trainer.add_argparse_args(parent_parser=parser)
     args = parser.parse_args()
@@ -126,28 +129,28 @@ if __name__ == "__main__":
         "train_batch_size": args.train_batch_size,
         "train_num_workers": args.train_num_workers,
         "val_batch_size": args.val_batch_size,
-        "val_num_workers": args.val_num_workers
+        "val_num_workers": args.val_num_workers,
     }
 
     datamodule = CIFAR10DataModule(**datamodule_args)
 
-
     # Initiating the training process
     trainer = Trainer(
         # logger=wandb_logger,    # W&B integration
-        log_every_n_steps=args.log_every_n_steps,   # set the logging frequency
-        gpus=args.gpus,                # use all GPUs
-        max_epochs=args.max_epochs, # number of epochs
-        deterministic=True,     # keep it deterministic
+        log_every_n_steps=args.log_every_n_steps,  # set the logging frequency
+        gpus=args.gpus,  # use all GPUs
+        max_epochs=args.max_epochs,  # number of epochs
+        deterministic=True,  # keep it deterministic
         enable_checkpointing=True,
         callbacks=[
-            #Logger(samples),
+            # Logger(samples),
             early_stopping,
-            checkpoint_callback], # see Callbacks section
+            checkpoint_callback,
+        ],  # see Callbacks section
         precision=16,
-        check_val_every_n_epoch= args.check_val_every_n_epoch,
-        strategy='ddp',
-        auto_scale_batch_size=True
+        check_val_every_n_epoch=args.check_val_every_n_epoch,
+        strategy="ddp",
+        auto_scale_batch_size=True,
     )
 
     model_config = {

@@ -100,7 +100,7 @@ class CIFAR10DataModule(
             .rename(image="ppm;jpg;jpeg;png", info="cls")
             .map_dict(image=self.train_transform)
             .to_tuple("image", "info")
-            #.batched(40)
+            # .batched(40)
         )
 
         self.valid_dataset = (
@@ -110,7 +110,7 @@ class CIFAR10DataModule(
             .rename(image="ppm", info="cls")
             .map_dict(image=self.valid_transform)
             .to_tuple("image", "info")
-            #.batched(20)
+            # .batched(20)
         )
 
         self.test_dataset = (
@@ -120,7 +120,7 @@ class CIFAR10DataModule(
             .rename(image="ppm", info="cls")
             .map_dict(image=self.valid_transform)
             .to_tuple("image", "info")
-            #.batched(20)
+            # .batched(20)
         )
 
     def create_data_loader(

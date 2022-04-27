@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
+
 class Classifier(LightningModule):
     def __init__(self, **kwargs):
         """method used to define our model parameters"""
@@ -25,10 +26,11 @@ class Classifier(LightningModule):
         Path("../data/models/plots").mkdir(parents=True, exist_ok=True)
 
         self.model = timm.create_model(
-            self.args.get("model_name", "resnet50"), pretrained=True, num_classes=self.args.get("num_classes", 10)
+            self.args.get("model_name", "resnet50"),
+            pretrained=True,
+            num_classes=self.args.get("num_classes", 10),
         )
         # self.criterion = F.CrossEntropyLoss()
-
 
         self.width = self.args.get("width", 32)
         self.height = self.args.get("height", 32)
@@ -55,7 +57,9 @@ class Classifier(LightningModule):
         """needs to return a loss from a single batch"""
         x, y = batch
         if batch_idx == 0:
-            self.reference_image = (x[0]).unsqueeze(0)  #pylint: disable=attribute-defined-outside-init
+            self.reference_image = (x[0]).unsqueeze(
+                0
+            )  # pylint: disable=attribute-defined-outside-init
             # self.reference_image.resize((1,1,28,28))
             # print("\n\nREFERENCE IMAGE!!!")
             # print(self.reference_image.shape)
@@ -99,7 +103,6 @@ class Classifier(LightningModule):
         self.log("test_loss", loss, on_step=False, on_epoch=True)
         self.log("test_acc", self.accuracy(preds, y), on_step=False, on_epoch=True)
 
-
     def configure_optimizers(self):
         """defines model optimizer"""
         optimizer = Adam(self.parameters(), lr=self.args.get("lr", 0.0001))
@@ -110,7 +113,7 @@ class Classifier(LightningModule):
             "lr_scheduler": {"scheduler": scheduler, "monitor": "train_loss"},
         }
 
-    def makegrid(self, output, numrows):  #pylint: disable=no-self-use
+    def makegrid(self, output, numrows):  # pylint: disable=no-self-use
         """Makes grids.
 
         Args:
@@ -142,8 +145,10 @@ class Classifier(LightningModule):
         Args:
              x_var: x variable
         """
-        plt.imsave(f"../data/models/plots/input_{self.current_epoch}_epoch.png",
-                   torch.Tensor.cpu(x_var[0][0]))
+        plt.imsave(
+            f"../data/models/plots/input_{self.current_epoch}_epoch.png",
+            torch.Tensor.cpu(x_var[0][0]),
+        )
 
         # logging layer 1 activations
         out = self.model.conv1(x_var)
@@ -152,8 +157,9 @@ class Classifier(LightningModule):
             "layer 1", c_grid, self.current_epoch, dataformats="HW"
         )
 
-        plt.imsave(f"../data/models/plots/activation_{self.current_epoch}_epoch.png",
-                   c_grid)
+        plt.imsave(
+            f"../data/models/plots/activation_{self.current_epoch}_epoch.png", c_grid
+        )
 
     def training_epoch_end(self, outputs):
         """Training epoch end.
@@ -162,7 +168,6 @@ class Classifier(LightningModule):
              outputs: outputs of train end
         """
         self.show_activations(self.reference_image)
-
 
     # def test_epoch_end(self, test_step_outputs):  # args are defined as part of pl API
     #     dummy_input = torch.zeros((3, self.height, self.width), device=self.device)
