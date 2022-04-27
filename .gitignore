@@ -1,6 +1,5 @@
 __pycache__
 notebook.py
-!data/models/plots/*
 data/**/*.tar
 data/**/*.ckpt
 data/cifar-10-batches-py

@@ -1,6 +1,4 @@
 """kubeflow pytorch-lightning training script"""
-import os
-import json
 from pathlib import Path
 from argparse import ArgumentParser
 from Training.pl_model import Classifier
