@@ -1,1 +1,6 @@
 __pycache__
+notebook.py
+data/**/*
+!data/models/plots/*
+*.pt
+*.pth
