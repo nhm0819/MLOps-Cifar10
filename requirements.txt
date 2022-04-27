@@ -1,1 +1,9 @@
-black
+scikit-learn
+webdataset
+torchvision
+pandas
+tensorboard
+torchmetrics
+pytorch-lightning
+kfp
+setuptools==59.5.0
