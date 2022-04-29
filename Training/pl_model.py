@@ -56,9 +56,7 @@ class Classifier(LightningModule):
         """needs to return a loss from a single batch"""
         x, y = batch
         if batch_idx == 0:
-            self.reference_image = (x[0]).unsqueeze(
-                0
-            )
+            self.reference_image = (x[0]).unsqueeze(0)
             # self.reference_image.resize((1,1,28,28))
             # print("\n\nREFERENCE IMAGE!!!")
             # print(self.reference_image.shape)
