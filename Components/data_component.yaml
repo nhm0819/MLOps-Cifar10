@@ -1,0 +1,17 @@
+name: PreProcessData
+description: |
+  Prepare data for PyTorch training.
+
+outputs:
+  - {name: output_data, description: 'The path to the input datasets'}
+#  - {name: MLPipeline UI Metadata, description: 'Path to generate MLPipeline UI Metadata'}
+
+implementation:
+  container:
+    image: nhm0819/kfp-pl:latest
+    command: ['python3', 'Dataload/data_load.py']
+    args:
+    - --output_path
+    - {outputPath: output_data}
+#    - --mlpipeline_ui_metadata
+#    - { outputPath: MLPipeline UI Metadata }
