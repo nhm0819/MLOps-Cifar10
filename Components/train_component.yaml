@@ -1,0 +1,51 @@
+name: Training
+description: |
+  Pytorch training
+inputs:
+  - {name: dataset_path, description: 'Input dataset path'}
+  - {name: model, description: 'model structure name in timm package'}
+  - {name: gpus, description: 'number of using gpus'}
+  - {name: max_epochs, description: 'training epochs'}
+  - {name: num_classes, description: 'number of dataset classes'}
+  - {name: train_batch_size, description: 'train dataset batch size'}
+  - {name: train_num_workers, description: 'train dataloader num workers'}
+  - {name: val_batch_size, description: 'val dataset batch size' }
+  - {name: val_num_workers, description: 'val dataloader num workers' }
+  - {name: lr, description: 'learning rate'}
+
+outputs:
+  - {name: checkpoint_dir, description: "Model checkpoint output"}
+#  - {name: MLPipeline UI Metadata, description: "MLPipeline UI Metadata output"}
+#  - {name: MLPipeline Metrics, description: "MLPipeline Metrics output"}
+implementation:
+  container:
+    image: nhm0819/kfp-pl:latest
+    command: ['python3', 'Training/pl_train.py']
+    args:
+      - --dataset_path
+      - {inputPath: dataset_path}
+      - --model
+      - {inputValue: model}
+      - --gpus
+      - {inputValue: gpus}
+      - --max_epochs
+      - {inputValue: max_epochs}
+      - --num_classes
+      - {inputValue: num_classes}
+      - --train_batch_size
+      - {inputValue: train_batch_size}
+      - --train_num_workers
+      - {inputValue: train_num_workers}
+      - --val_batch_size
+      - {inputValue: val_batch_size}
+      - --val_num_workers
+      - {inputValue: val_num_workers }
+      - --lr
+      - {inputValue: lr}
+      - --checkpoint_dir
+      - {outputPath: checkpoint_dir}
+#      - --mlpipeline_ui_metadata
+#      - {outputPath: MLPipeline UI Metadata}
+#      - --mlpipeline_metrics
+#      - {outputPath: MLPipeline Metrics}
+

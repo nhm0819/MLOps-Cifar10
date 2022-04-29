@@ -14,25 +14,14 @@ from pytorch_lightning.callbacks import (
 parser = ArgumentParser()
 
 # Train hyperparams
+parser.add_argument("--model", default="resnet50", type=str, help="model structure name in timm package")
 parser.add_argument("--gpus", default=-1, type=int, help="num of gpus")
 parser.add_argument("--max_epochs", default=30, type=int, help="training max epochs")
 parser.add_argument("--num_classes", default=10, type=int, help="num_classes")
-parser.add_argument(
-    "--train_batch_size",
-    type=int,
-    default=256,
-    metavar="N",
-    help="batch size / num_gpus",
-)
-parser.add_argument(
-    "--train_num_workers", type=int, default=10, metavar="N", help="number of workers"
-)
-parser.add_argument(
-    "--val_batch_size", type=int, default=256, metavar="N", help="batch size / num_gpus"
-)
-parser.add_argument(
-    "--val_num_workers", type=int, default=10, metavar="N", help="number of workers"
-)
+parser.add_argument("--train_batch_size", type=int, default=256, metavar="N", help="batch size / num_gpus")
+parser.add_argument("--train_num_workers", type=int, default=10, metavar="N", help="number of workers")
+parser.add_argument("--val_batch_size", type=int, default=256, metavar="N", help="batch size / num_gpus")
+parser.add_argument("--val_num_workers", type=int, default=10, metavar="N", help="number of workers")
 parser.add_argument("--lr", type=float, default=1e-3, metavar="N", help="learning rate")
 
 # log args
@@ -55,7 +44,7 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint_dir",
     type=str,
-    default="../data/models",
+    default="/train/models",
     help="Path to save model checkpoints (default: output/train/models)",
 )
 
@@ -152,7 +141,7 @@ if __name__ == "__main__":
     )
 
     model_config = {
-        "model_name": "resnet50",
+        "model_name": args.model,
         "num_classes": args.num_classes,
         "lr": args.lr,
         "width": 32,

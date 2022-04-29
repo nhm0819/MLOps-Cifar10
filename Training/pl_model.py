@@ -30,7 +30,6 @@ class Classifier(LightningModule):
             pretrained=True,
             num_classes=self.args.get("num_classes", 10),
         )
-        # self.criterion = F.CrossEntropyLoss()
 
         self.width = self.args.get("width", 32)
         self.height = self.args.get("height", 32)
@@ -59,7 +58,7 @@ class Classifier(LightningModule):
         if batch_idx == 0:
             self.reference_image = (x[0]).unsqueeze(
                 0
-            )  # pylint: disable=attribute-defined-outside-init
+            )
             # self.reference_image.resize((1,1,28,28))
             # print("\n\nREFERENCE IMAGE!!!")
             # print(self.reference_image.shape)
