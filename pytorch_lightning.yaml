@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: pytorch-lightning-training-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.12, pipelines.kubeflow.org/pipeline_compilation_time: '2022-04-29T15:56:11.309606',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.12, pipelines.kubeflow.org/pipeline_compilation_time: '2022-05-04T16:48:57.842764',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "Cifar 10 dataset pipeline",
       "name": "Pytorch Lightning Training pipeline"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.12}
@@ -44,8 +44,21 @@ spec:
       args: [--dataset_path, /tmp/inputs/dataset_path/data, --model, resnet50, --gpus,
         '-1', --max_epochs, '30', --num_classes, '10', --train_batch_size, '256',
         --train_num_workers, '8', --val_batch_size, '256', --val_num_workers, '8',
-        --lr, '0.001', --checkpoint_dir, /tmp/outputs/checkpoint_dir/data]
+        --lr, '0.001', --result_path, 's3://mlpipeline']
       command: [python3, Training/pl_train.py]
+      env:
+      - {name: WANDB_API_KEY, value: 2354738e97d58165dbe907484b7507ce9abb1fc0}
+      - {name: S3_ENDPOINT, value: 'minio-service.kubeflow:9000'}
+      - {name: AWS_ENDPOINT_URL, value: 'http://minio-service.kubeflow:9000'}
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef: {key: AWS_ACCESS_KEY_ID, name: mysecret}
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef: {key: AWS_SECRET_ACCESS_KEY, name: mysecret}
+      - {name: AWS_REGION, value: us-east-1}
+      - {name: S3_USE_HTTPS, value: '0'}
+      - {name: S3_VERIFY_SSL, value: '0'}
       image: nhm0819/kfp-pl:latest
       resources:
         limits: {nvidia.com/gpu: 1}
@@ -54,9 +67,6 @@ spec:
     inputs:
       artifacts:
       - {name: preprocessdata-output_data, path: /tmp/inputs/dataset_path/data}
-    outputs:
-      artifacts:
-      - {name: training-checkpoint_dir, path: /tmp/outputs/checkpoint_dir/data}
     metadata:
       annotations: {pipelines.kubeflow.org/task_display_name: Training, pipelines.kubeflow.org/component_spec: '{"description":
           "Pytorch training\n", "implementation": {"container": {"args": ["--dataset_path",
@@ -65,7 +75,7 @@ spec:
           {"inputValue": "num_classes"}, "--train_batch_size", {"inputValue": "train_batch_size"},
           "--train_num_workers", {"inputValue": "train_num_workers"}, "--val_batch_size",
           {"inputValue": "val_batch_size"}, "--val_num_workers", {"inputValue": "val_num_workers"},
-          "--lr", {"inputValue": "lr"}, "--checkpoint_dir", {"outputPath": "checkpoint_dir"}],
+          "--lr", {"inputValue": "lr"}, "--result_path", {"inputValue": "result_path"}],
           "command": ["python3", "Training/pl_train.py"], "image": "nhm0819/kfp-pl:latest"}},
           "inputs": [{"description": "Input dataset path", "name": "dataset_path"},
           {"description": "model structure name in timm package", "name": "model"},
@@ -75,14 +85,14 @@ spec:
           "name": "train_batch_size"}, {"description": "train dataloader num workers",
           "name": "train_num_workers"}, {"description": "val dataset batch size",
           "name": "val_batch_size"}, {"description": "val dataloader num workers",
-          "name": "val_num_workers"}, {"description": "learning rate", "name": "lr"}],
-          "name": "Training", "outputs": [{"description": "Model checkpoint output",
-          "name": "checkpoint_dir"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
-          "48dc14b3c0f83b31006b24213b4eea5cc74d021d4402141d51b1d22f937d9d31", "url":
+          "name": "val_num_workers"}, {"description": "learning rate", "name": "lr"},
+          {"description": "model result and log directory", "name": "result_path"}],
+          "name": "Training"}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "2a4b179300653081a2ecd65c20bc9056224df87029781dfe1e13af03fc61c743", "url":
           "Components/train_component.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"gpus":
           "-1", "lr": "0.001", "max_epochs": "30", "model": "resnet50", "num_classes":
-          "10", "train_batch_size": "256", "train_num_workers": "8", "val_batch_size":
-          "256", "val_num_workers": "8"}'}
+          "10", "result_path": "s3://mlpipeline", "train_batch_size": "256", "train_num_workers":
+          "8", "val_batch_size": "256", "val_num_workers": "8"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
         pipelines.kubeflow.org/pipeline-sdk-type: kfp

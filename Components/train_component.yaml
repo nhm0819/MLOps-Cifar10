@@ -12,9 +12,10 @@ inputs:
   - {name: val_batch_size, description: 'val dataset batch size' }
   - {name: val_num_workers, description: 'val dataloader num workers' }
   - {name: lr, description: 'learning rate'}
+  - {name: result_path, description: 'model result and log directory'}
 
-outputs:
-  - {name: checkpoint_dir, description: "Model checkpoint output"}
+#outputs:
+#  - {name: checkpoint_dir, description: "Model checkpoint output"}
 #  - {name: MLPipeline UI Metadata, description: "MLPipeline UI Metadata output"}
 #  - {name: MLPipeline Metrics, description: "MLPipeline Metrics output"}
 implementation:
@@ -42,8 +43,10 @@ implementation:
       - {inputValue: val_num_workers }
       - --lr
       - {inputValue: lr}
-      - --checkpoint_dir
-      - {outputPath: checkpoint_dir}
+      - --result_path
+      - {inputValue: result_path}
+#      - --checkpoint_dir
+#      - {outputPath: checkpoint_dir}
 #      - --mlpipeline_ui_metadata
 #      - {outputPath: MLPipeline UI Metadata}
 #      - --mlpipeline_metrics

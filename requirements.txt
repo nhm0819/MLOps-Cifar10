@@ -9,4 +9,5 @@ pytorch-lightning
 kubernetes
 kfp
 timm
+wandb
 # setuptools==59.5.0

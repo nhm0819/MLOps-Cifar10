@@ -6,3 +6,4 @@ data/**/*.ckpt
 data/cifar-10-batches-py
 *.pt
 *.pth
+.idea
