@@ -1,6 +1,5 @@
 """kubeflow pytorch-lightning training script"""
 import wandb
-import os
 from pathlib import Path
 from argparse import ArgumentParser
 from Training.pl_model import Classifier
@@ -96,17 +95,17 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--result_path",
+    "--log_dir",
     type=str,
     default="../data/logs",
     help="path of minio bucket or s3",
 )
-# parser.add_argument(
-#     "--checkpoint_dir",
-#     type=str,
-#     default="../data/ckpt",
-#     help="path of checkpoint directory",
-# )
+parser.add_argument(
+    "--checkpoint_dir",
+    type=str,
+    default="../data/ckpt",
+    help="path of checkpoint directory",
+)
 
 parser.add_argument("--wandb_project", type=str, default="kubeflow")
 parser.add_argument("--wandb_name", type=str, default="exec-1")
@@ -115,14 +114,18 @@ parser.add_argument("--wandb_name", type=str, default="exec-1")
 if __name__ == "__main__":
     # parser = pl.Trainer.add_argparse_args(parent_parser=parser)
     args = parser.parse_args()
-    checkpoint_dir = args.result_path + "/ckpt"
-    log_dir = args.result_path + "/log"
 
     # Creating parent directories
-    Path(args.result_path).mkdir(parents=True, exist_ok=True)
+    Path(args.log_dir).mkdir(parents=True, exist_ok=True)
     Path(args.checkpoint_dir).mkdir(parents=True, exist_ok=True)
 
-    # Enabling Tensorboard Logger, ModelCheckpoint, Earlystopping
+    # Enabling Wandb Logger, ModelCheckpoint, Earlystopping
+    wandb_logger = WandbLogger(
+        project=args.wandb_project,
+        name=args.wandb_name,
+        log_model=False,
+        save_dir=args.log_dir,
+    )
     lr_logger = LearningRateMonitor()
     early_stopping = EarlyStopping(
         monitor="val_loss",
@@ -132,7 +135,7 @@ if __name__ == "__main__":
     )
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath=checkpoint_dir,
+        dirpath=args.checkpoint_dir,
         filename="cifar10_{epoch:02d}_{val_loss:.2f}",
         save_top_k=3,
         verbose=True,
@@ -153,18 +156,11 @@ if __name__ == "__main__":
     datamodule.setup()
     samples = next(iter(datamodule.test_dataloader()))
 
-    wandb_logger = WandbLogger(
-        project=args.wandb_project,
-        name=args.wandb_name,
-        log_model="all",
-        save_dir=log_dir,
-    )
-
     # Initiating the training process
     trainer = Trainer(
         logger=wandb_logger,  # W&B integration
         log_every_n_steps=args.log_every_n_steps,  # set the logging frequency
-        gpus=args.gpus,  # use all GPUs
+        gpus=args.gpus,  # if -1, using all GPUs
         max_epochs=args.max_epochs,  # number of epochs
         deterministic=True,  # keep it deterministic
         enable_checkpointing=True,

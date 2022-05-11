@@ -2,29 +2,104 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: pytorch-lightning-training-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.12, pipelines.kubeflow.org/pipeline_compilation_time: '2022-05-04T16:48:57.842764',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.12, pipelines.kubeflow.org/pipeline_compilation_time: '2022-05-10T10:38:52.464031',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "Cifar 10 dataset pipeline",
       "name": "Pytorch Lightning Training pipeline"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.12}
 spec:
   entrypoint: pytorch-lightning-training-pipeline
   templates:
+  - name: minio-upload
+    container:
+      args: [--bucket_name, mlpipeline, --folder_name, 'logs/{{workflow.uid}}', --input_path,
+        /tmp/inputs/input_path/data, --filename, '']
+      command: [python3, Result/minio_upload.py]
+      env:
+      - {name: MINIO_ENDPOINT, value: 'minio-service.kubeflow:9000'}
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef: {key: accesskey, name: mlpipeline-minio-artifact}
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef: {key: secretkey, name: mlpipeline-minio-artifact}
+      - {name: S3_USE_HTTPS, value: '0'}
+      - {name: S3_VERIFY_SSL, value: '0'}
+      image: nhm0819/kfp-pl:latest
+    inputs:
+      artifacts:
+      - {name: training-log_dir, path: /tmp/inputs/input_path/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/task_display_name: training logs Pusher,
+        pipelines.kubeflow.org/component_spec: '{"description": "Minio Upload\n",
+          "implementation": {"container": {"args": ["--bucket_name", {"inputValue":
+          "bucket_name"}, "--folder_name", {"inputValue": "folder_name"}, "--input_path",
+          {"inputPath": "input_path"}, "--filename", {"inputValue": "filename"}],
+          "command": ["python3", "Result/minio_upload.py"], "image": "nhm0819/kfp-pl:latest"}},
+          "inputs": [{"description": "Minio Bucket name", "name": "bucket_name"},
+          {"description": "Minio folder name to upload the files", "name": "folder_name"},
+          {"description": "Input file/folder name", "name": "input_path"}, {"description":
+          "Input file name", "name": "filename"}], "name": "Minio Upload"}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "f5e65ecb66c950d8a8af9d6ce491bebcccd5bca76c36b016242f6310eafb16c8", "url":
+          "Components/minio_component.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"bucket_name":
+          "mlpipeline", "filename": "", "folder_name": "logs/{{workflow.uid}}"}'}
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: minio-upload-2
+    container:
+      args: [--bucket_name, mlpipeline, --folder_name, ckpt, --input_path, /tmp/inputs/input_path/data,
+        --filename, '']
+      command: [python3, Result/minio_upload.py]
+      env:
+      - {name: MINIO_ENDPOINT, value: 'minio-service.kubeflow:9000'}
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef: {key: accesskey, name: mlpipeline-minio-artifact}
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef: {key: secretkey, name: mlpipeline-minio-artifact}
+      - {name: S3_USE_HTTPS, value: '0'}
+      - {name: S3_VERIFY_SSL, value: '0'}
+      image: nhm0819/kfp-pl:latest
+    inputs:
+      artifacts:
+      - {name: training-checkpoint_dir, path: /tmp/inputs/input_path/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/task_display_name: checkpoint results Pusher,
+        pipelines.kubeflow.org/component_spec: '{"description": "Minio Upload\n",
+          "implementation": {"container": {"args": ["--bucket_name", {"inputValue":
+          "bucket_name"}, "--folder_name", {"inputValue": "folder_name"}, "--input_path",
+          {"inputPath": "input_path"}, "--filename", {"inputValue": "filename"}],
+          "command": ["python3", "Result/minio_upload.py"], "image": "nhm0819/kfp-pl:latest"}},
+          "inputs": [{"description": "Minio Bucket name", "name": "bucket_name"},
+          {"description": "Minio folder name to upload the files", "name": "folder_name"},
+          {"description": "Input file/folder name", "name": "input_path"}, {"description":
+          "Input file name", "name": "filename"}], "name": "Minio Upload"}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "f5e65ecb66c950d8a8af9d6ce491bebcccd5bca76c36b016242f6310eafb16c8", "url":
+          "Components/minio_component.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"bucket_name":
+          "mlpipeline", "filename": "", "folder_name": "ckpt"}'}
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
   - name: preprocessdata
     container:
-      args: [--output_path, /tmp/outputs/output_data/data]
+      args: [--preprocessed_path, /tmp/outputs/preprocessed_path/data]
       command: [python3, Dataload/data_load.py]
       image: nhm0819/kfp-pl:latest
     outputs:
       artifacts:
-      - {name: preprocessdata-output_data, path: /tmp/outputs/output_data/data}
+      - {name: preprocessdata-preprocessed_path, path: /tmp/outputs/preprocessed_path/data}
     metadata:
       annotations: {pipelines.kubeflow.org/task_display_name: Data Preprocess, pipelines.kubeflow.org/component_spec: '{"description":
           "Prepare data for PyTorch training.\n", "implementation": {"container":
-          {"args": ["--output_path", {"outputPath": "output_data"}], "command": ["python3",
-          "Dataload/data_load.py"], "image": "nhm0819/kfp-pl:latest"}}, "name": "PreProcessData",
-          "outputs": [{"description": "The path to the input datasets", "name": "output_data"}]}',
-        pipelines.kubeflow.org/component_ref: '{"digest": "770f3ca4997af82aafd2d97846cfba206f364777b2acbca884b0eb8832b2bd1d",
-          "url": "Components/data_component.yaml"}'}
+          {"args": ["--preprocessed_path", {"outputPath": "preprocessed_path"}], "command":
+          ["python3", "Dataload/data_load.py"], "image": "nhm0819/kfp-pl:latest"}},
+          "name": "PreProcessData", "outputs": [{"description": "The path to the dataset",
+          "name": "preprocessed_path"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "915545aaff84cf81c64298d63d06953e7e2720a2954945e1fd56795bf262c5cc", "url":
+          "Components/data_component.yaml"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
@@ -32,33 +107,35 @@ spec:
   - name: pytorch-lightning-training-pipeline
     dag:
       tasks:
+      - name: minio-upload
+        template: minio-upload
+        dependencies: [training]
+        arguments:
+          artifacts:
+          - {name: training-log_dir, from: '{{tasks.training.outputs.artifacts.training-log_dir}}'}
+      - name: minio-upload-2
+        template: minio-upload-2
+        dependencies: [training]
+        arguments:
+          artifacts:
+          - {name: training-checkpoint_dir, from: '{{tasks.training.outputs.artifacts.training-checkpoint_dir}}'}
       - {name: preprocessdata, template: preprocessdata}
       - name: training
         template: training
         dependencies: [preprocessdata]
         arguments:
           artifacts:
-          - {name: preprocessdata-output_data, from: '{{tasks.preprocessdata.outputs.artifacts.preprocessdata-output_data}}'}
+          - {name: preprocessdata-preprocessed_path, from: '{{tasks.preprocessdata.outputs.artifacts.preprocessdata-preprocessed_path}}'}
   - name: training
     container:
       args: [--dataset_path, /tmp/inputs/dataset_path/data, --model, resnet50, --gpus,
         '-1', --max_epochs, '30', --num_classes, '10', --train_batch_size, '256',
         --train_num_workers, '8', --val_batch_size, '256', --val_num_workers, '8',
-        --lr, '0.001', --result_path, 's3://mlpipeline']
+        --lr, '0.001', --checkpoint_dir, /tmp/outputs/checkpoint_dir/data, --log_dir,
+        /tmp/outputs/log_dir/data]
       command: [python3, Training/pl_train.py]
       env:
       - {name: WANDB_API_KEY, value: 2354738e97d58165dbe907484b7507ce9abb1fc0}
-      - {name: S3_ENDPOINT, value: 'minio-service.kubeflow:9000'}
-      - {name: AWS_ENDPOINT_URL, value: 'http://minio-service.kubeflow:9000'}
-      - name: AWS_ACCESS_KEY_ID
-        valueFrom:
-          secretKeyRef: {key: AWS_ACCESS_KEY_ID, name: mysecret}
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef: {key: AWS_SECRET_ACCESS_KEY, name: mysecret}
-      - {name: AWS_REGION, value: us-east-1}
-      - {name: S3_USE_HTTPS, value: '0'}
-      - {name: S3_VERIFY_SSL, value: '0'}
       image: nhm0819/kfp-pl:latest
       resources:
         limits: {nvidia.com/gpu: 1}
@@ -66,7 +143,11 @@ spec:
       - {mountPath: /dev/shm, name: shm}
     inputs:
       artifacts:
-      - {name: preprocessdata-output_data, path: /tmp/inputs/dataset_path/data}
+      - {name: preprocessdata-preprocessed_path, path: /tmp/inputs/dataset_path/data}
+    outputs:
+      artifacts:
+      - {name: training-checkpoint_dir, path: /tmp/outputs/checkpoint_dir/data}
+      - {name: training-log_dir, path: /tmp/outputs/log_dir/data}
     metadata:
       annotations: {pipelines.kubeflow.org/task_display_name: Training, pipelines.kubeflow.org/component_spec: '{"description":
           "Pytorch training\n", "implementation": {"container": {"args": ["--dataset_path",
@@ -75,24 +156,25 @@ spec:
           {"inputValue": "num_classes"}, "--train_batch_size", {"inputValue": "train_batch_size"},
           "--train_num_workers", {"inputValue": "train_num_workers"}, "--val_batch_size",
           {"inputValue": "val_batch_size"}, "--val_num_workers", {"inputValue": "val_num_workers"},
-          "--lr", {"inputValue": "lr"}, "--result_path", {"inputValue": "result_path"}],
-          "command": ["python3", "Training/pl_train.py"], "image": "nhm0819/kfp-pl:latest"}},
-          "inputs": [{"description": "Input dataset path", "name": "dataset_path"},
-          {"description": "model structure name in timm package", "name": "model"},
-          {"description": "number of using gpus", "name": "gpus"}, {"description":
-          "training epochs", "name": "max_epochs"}, {"description": "number of dataset
-          classes", "name": "num_classes"}, {"description": "train dataset batch size",
-          "name": "train_batch_size"}, {"description": "train dataloader num workers",
-          "name": "train_num_workers"}, {"description": "val dataset batch size",
-          "name": "val_batch_size"}, {"description": "val dataloader num workers",
-          "name": "val_num_workers"}, {"description": "learning rate", "name": "lr"},
-          {"description": "model result and log directory", "name": "result_path"}],
-          "name": "Training"}', pipelines.kubeflow.org/component_ref: '{"digest":
-          "2a4b179300653081a2ecd65c20bc9056224df87029781dfe1e13af03fc61c743", "url":
+          "--lr", {"inputValue": "lr"}, "--checkpoint_dir", {"outputPath": "checkpoint_dir"},
+          "--log_dir", {"outputPath": "log_dir"}], "command": ["python3", "Training/pl_train.py"],
+          "image": "nhm0819/kfp-pl:latest"}}, "inputs": [{"description": "Input dataset
+          path", "name": "dataset_path"}, {"description": "model structure name in
+          timm package", "name": "model"}, {"description": "number of using gpus",
+          "name": "gpus"}, {"description": "training epochs", "name": "max_epochs"},
+          {"description": "number of dataset classes", "name": "num_classes"}, {"description":
+          "train dataset batch size", "name": "train_batch_size"}, {"description":
+          "train dataloader num workers", "name": "train_num_workers"}, {"description":
+          "val dataset batch size", "name": "val_batch_size"}, {"description": "val
+          dataloader num workers", "name": "val_num_workers"}, {"description": "learning
+          rate", "name": "lr"}], "name": "Training", "outputs": [{"description": "Model
+          checkpoint output path", "name": "checkpoint_dir"}, {"description": "Training
+          log output path", "name": "log_dir"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "1f3314e3315af965448395ff9abe60906966016f65dc882cfccd41db6d23e2a5", "url":
           "Components/train_component.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"gpus":
           "-1", "lr": "0.001", "max_epochs": "30", "model": "resnet50", "num_classes":
-          "10", "result_path": "s3://mlpipeline", "train_batch_size": "256", "train_num_workers":
-          "8", "val_batch_size": "256", "val_num_workers": "8"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
+          "10", "train_batch_size": "256", "train_num_workers": "8", "val_batch_size":
+          "256", "val_num_workers": "8"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
         pipelines.kubeflow.org/pipeline-sdk-type: kfp

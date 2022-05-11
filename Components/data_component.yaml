@@ -2,8 +2,11 @@ name: PreProcessData
 description: |
   Prepare data for PyTorch training.
 
+#inputs:
+#  - {name: dataset_path, description: 'The path to saving datasets'}
+
 outputs:
-  - {name: output_data, description: 'The path to the input datasets'}
+  - {name: preprocessed_path, description: 'The path to the dataset'}
 #  - {name: MLPipeline UI Metadata, description: 'Path to generate MLPipeline UI Metadata'}
 
 implementation:
@@ -11,7 +14,7 @@ implementation:
     image: nhm0819/kfp-pl:latest
     command: ['python3', 'Dataload/data_load.py']
     args:
-    - --output_path
-    - {outputPath: output_data}
+    - --preprocessed_path
+    - {outputPath: preprocessed_path}
 #    - --mlpipeline_ui_metadata
 #    - { outputPath: MLPipeline UI Metadata }
