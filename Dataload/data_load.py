@@ -9,7 +9,8 @@ from sklearn.model_selection import train_test_split
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--output_path", default="../data", type=str)
+    # parser.add_argument("--dataset_path", default="../datasets", type=str)
+    parser.add_argument("--preprocessed_path", default="../data", type=str)
 
     parser.add_argument(
         "--mlpipeline_ui_metadata",
@@ -19,16 +20,20 @@ if __name__ == "__main__":
     )
 
     args = vars(parser.parse_args())
-    output_path = args["output_path"]
+    dataset_path = "./datasets"  # args["dataset_path"]
+    preprocessed_path = args["preprocessed_path"]
 
-    Path(output_path).mkdir(parents=True, exist_ok=True)
+    Path(preprocessed_path).mkdir(parents=True, exist_ok=True)
+    Path(preprocessed_path + "/train").mkdir(parents=True, exist_ok=True)
+    Path(preprocessed_path + "/val").mkdir(parents=True, exist_ok=True)
+    Path(preprocessed_path + "/test").mkdir(parents=True, exist_ok=True)
 
-    trainset = torchvision.datasets.CIFAR10(root=output_path, train=True, download=True)
-    testset = torchvision.datasets.CIFAR10(root=output_path, train=False, download=True)
-
-    Path(output_path + "/train").mkdir(parents=True, exist_ok=True)
-    Path(output_path + "/val").mkdir(parents=True, exist_ok=True)
-    Path(output_path + "/test").mkdir(parents=True, exist_ok=True)
+    trainset = torchvision.datasets.CIFAR10(
+        root=dataset_path, train=True, download=True
+    )
+    testset = torchvision.datasets.CIFAR10(
+        root=dataset_path, train=False, download=True
+    )
 
     RANDOM_SEED = 42
     y = trainset.targets
@@ -38,13 +43,13 @@ if __name__ == "__main__":
 
     for name in [(trainset, "train"), (valset, "val"), (testset, "test")]:
         with wds.ShardWriter(
-            output_path + "/" + str(name[1]) + "/" + str(name[1]) + "-%d.tar",
+            preprocessed_path + "/" + str(name[1]) + "/" + str(name[1]) + "-%d.tar",
             maxcount=1000,
         ) as sink:
             for index, (image, cls) in enumerate(name[0]):
                 sink.write({"__key__": "%06d" % index, "ppm": image, "cls": cls})
 
-    entry_point = ["ls", "-R", output_path]
+    entry_point = ["ls", "-R", preprocessed_path]
     run_code = subprocess.run(
         entry_point, stdout=subprocess.PIPE
     )  # pylint: disable=subprocess-run-check

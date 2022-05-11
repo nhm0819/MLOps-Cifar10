@@ -14,7 +14,8 @@ inputs:
   - {name: lr, description: 'learning rate'}
 
 outputs:
-  - {name: checkpoint_dir, description: "Model checkpoint output"}
+  - {name: checkpoint_dir, description: "Model checkpoint output path"}
+  - {name: log_dir, description: "Training log output path"}
 #  - {name: MLPipeline UI Metadata, description: "MLPipeline UI Metadata output"}
 #  - {name: MLPipeline Metrics, description: "MLPipeline Metrics output"}
 implementation:
@@ -22,6 +23,7 @@ implementation:
     image: nhm0819/kfp-pl:latest
     command: ['python3', 'Training/pl_train.py']
     args:
+# input args
       - --dataset_path
       - {inputPath: dataset_path}
       - --model
@@ -39,11 +41,16 @@ implementation:
       - --val_batch_size
       - {inputValue: val_batch_size}
       - --val_num_workers
-      - {inputValue: val_num_workers }
+      - {inputValue: val_num_workers}
       - --lr
       - {inputValue: lr}
+# output args
       - --checkpoint_dir
       - {outputPath: checkpoint_dir}
+      - --log_dir
+      - {outputPath: log_dir}
+#      - --checkpoint_dir
+#      - {outputPath: checkpoint_dir}
 #      - --mlpipeline_ui_metadata
 #      - {outputPath: MLPipeline UI Metadata}
 #      - --mlpipeline_metrics

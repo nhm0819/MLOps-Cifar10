@@ -1,9 +1,12 @@
 """kubeflow pytorch-lightning training script"""
+import wandb
 from pathlib import Path
 from argparse import ArgumentParser
 from Training.pl_model import Classifier
 from Training.pl_datamodule import CIFAR10DataModule
+from Training.pl_logger import Logger
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     LearningRateMonitor,
@@ -56,13 +59,6 @@ parser.add_argument(
 
 # container IO
 parser.add_argument(
-    "--checkpoint_dir",
-    type=str,
-    default="/train/models",
-    help="Path to save model checkpoints (default: output/train/models)",
-)
-
-parser.add_argument(
     "--dataset_path",
     type=str,
     default="../data",
@@ -98,13 +94,38 @@ parser.add_argument(
     "--results", default="results.json", type=str, help="Training results"
 )
 
+parser.add_argument(
+    "--log_dir",
+    type=str,
+    default="../data/logs",
+    help="path of minio bucket or s3",
+)
+parser.add_argument(
+    "--checkpoint_dir",
+    type=str,
+    default="../data/ckpt",
+    help="path of checkpoint directory",
+)
+
+parser.add_argument("--wandb_project", type=str, default="kubeflow")
+parser.add_argument("--wandb_name", type=str, default="exec-1")
+
 
 if __name__ == "__main__":
     # parser = pl.Trainer.add_argparse_args(parent_parser=parser)
     args = parser.parse_args()
 
-    # Enabling Tensorboard Logger, ModelCheckpoint, Earlystopping
+    # Creating parent directories
+    Path(args.log_dir).mkdir(parents=True, exist_ok=True)
+    Path(args.checkpoint_dir).mkdir(parents=True, exist_ok=True)
 
+    # Enabling Wandb Logger, ModelCheckpoint, Earlystopping
+    wandb_logger = WandbLogger(
+        project=args.wandb_project,
+        name=args.wandb_name,
+        log_model=False,
+        save_dir=args.log_dir,
+    )
     lr_logger = LearningRateMonitor()
     early_stopping = EarlyStopping(
         monitor="val_loss",
@@ -112,6 +133,7 @@ if __name__ == "__main__":
         patience=10,
         verbose=True,
     )
+
     checkpoint_callback = ModelCheckpoint(
         dirpath=args.checkpoint_dir,
         filename="cifar10_{epoch:02d}_{val_loss:.2f}",
@@ -120,9 +142,6 @@ if __name__ == "__main__":
         monitor="val_loss",
         mode="min",
     )
-
-    # Creating parent directories
-    Path(args.checkpoint_dir).mkdir(parents=True, exist_ok=True)
 
     # Setting the datamodule specific arguments
     datamodule_args = {
@@ -134,17 +153,19 @@ if __name__ == "__main__":
     }
 
     datamodule = CIFAR10DataModule(**datamodule_args)
+    datamodule.setup()
+    samples = next(iter(datamodule.test_dataloader()))
 
     # Initiating the training process
     trainer = Trainer(
-        # logger=wandb_logger,    # W&B integration
+        logger=wandb_logger,  # W&B integration
         log_every_n_steps=args.log_every_n_steps,  # set the logging frequency
-        gpus=args.gpus,  # use all GPUs
+        gpus=args.gpus,  # if -1, using all GPUs
         max_epochs=args.max_epochs,  # number of epochs
         deterministic=True,  # keep it deterministic
         enable_checkpointing=True,
         callbacks=[
-            # Logger(samples),
+            Logger(samples),
             early_stopping,
             checkpoint_callback,
         ],  # see Callbacks section
@@ -166,6 +187,8 @@ if __name__ == "__main__":
 
     trainer.fit(model, datamodule)
     trainer.test(datamodule=datamodule)
+
+    wandb.finish()
 
     # if trainer.global_rank == 0:
     #     # Mar file generation

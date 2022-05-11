@@ -1,5 +1,5 @@
 # Weights & Biases
-# import wandb
+import wandb
 
 # Pytorch modules
 import torch
@@ -10,10 +10,9 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 # Pytorch-Lightning
 from pytorch_lightning import LightningModule
 
+import os
 import torchmetrics
 import timm
-import matplotlib.pyplot as plt
-import numpy as np
 from pathlib import Path
 
 
@@ -23,7 +22,12 @@ class Classifier(LightningModule):
         super().__init__()
 
         self.args = kwargs
-        Path("../data/models/plots").mkdir(parents=True, exist_ok=True)
+        self.log_dir = self.args.get("log_dir", "mlpipeline")
+        self.model_dir = os.path.join(self.log_dir, "models")
+        self.plot_dir = os.path.join(self.log_dir, "plots")
+        Path(self.log_dir).mkdir(parents=True, exist_ok=True)
+        Path(self.model_dir).mkdir(parents=True, exist_ok=True)
+        Path(self.plot_dir).mkdir(parents=True, exist_ok=True)
 
         self.model = timm.create_model(
             self.args.get("model_name", "resnet50"),
@@ -81,16 +85,23 @@ class Classifier(LightningModule):
 
         return logits
 
-    # def validation_epoch_end(self, validation_step_outputs):
-    #     dummy_input = torch.zeros((3, self.height, self.width), device=self.device)
-    #     model_filename = f"model_{str(self.global_step).zfill(5)}.pt"
-    #     self.to_torchscript(model_filename, method="script", example_inputs=dummy_input)
-    #     # wandb.save(model_filename)
-    #
-    #     flattened_logits = torch.flatten(torch.cat(validation_step_outputs))
-    #     # self.logger.experiment.log(
-    #     #     {"valid_logits": wandb.Histogram(flattened_logits.to("cpu")),
-    #     #      "global_step": self.global_step})
+    def validation_epoch_end(self, validation_step_outputs):
+        dummy_input = torch.zeros((3, self.height, self.width), device=self.device)
+        model_filename = f"model_{str(self.global_step).zfill(5)}.pt"
+        self.to_torchscript(
+            self.model_dir + "/" + model_filename,
+            method="script",
+            example_inputs=dummy_input,
+        )
+        # wandb.save(model_filename)
+
+        flattened_logits = torch.flatten(torch.cat(validation_step_outputs))
+        self.logger.experiment.log(
+            {
+                "valid_logits": wandb.Histogram(flattened_logits.to("cpu")),
+                "global_step": self.global_step,
+            }
+        )
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -99,6 +110,8 @@ class Classifier(LightningModule):
 
         self.log("test_loss", loss, on_step=False, on_epoch=True)
         self.log("test_acc", self.accuracy(preds, y), on_step=False, on_epoch=True)
+
+        return logits
 
     def configure_optimizers(self):
         """defines model optimizer"""
@@ -110,70 +123,77 @@ class Classifier(LightningModule):
             "lr_scheduler": {"scheduler": scheduler, "monitor": "train_loss"},
         }
 
-    def makegrid(self, output, numrows):  # pylint: disable=no-self-use
-        """Makes grids.
-
-        Args:
-             output : Tensor output
-             numrows : num of rows.
-        Returns:
-             c_array : gird array
-        """
-        outer = torch.Tensor.cpu(output).detach()
-        plt.figure(figsize=(20, 5))
-        b_array = np.array([]).reshape(0, outer.shape[2])
-        c_array = np.array([]).reshape(numrows * outer.shape[2], 0)
-        i = 0
-        j = 0
-        while i < outer.shape[1]:
-            img = outer[0][i]
-            b_array = np.concatenate((img, b_array), axis=0)
-            j += 1
-            if j == numrows:
-                c_array = np.concatenate((c_array, b_array), axis=1)
-                b_array = np.array([]).reshape(0, outer.shape[2])
-                j = 0
-
-            i += 1
-        return c_array
-
-    def show_activations(self, x_var):
-        """Showns activation
-        Args:
-             x_var: x variable
-        """
-        plt.imsave(
-            f"../data/models/plots/input_{self.current_epoch}_epoch.png",
-            torch.Tensor.cpu(x_var[0][0]),
-        )
-
-        # logging layer 1 activations
-        out = self.model.conv1(x_var)
-        c_grid = self.makegrid(out, 4)
-        self.logger.experiment.add_image(
-            "layer 1", c_grid, self.current_epoch, dataformats="HW"
-        )
-
-        plt.imsave(
-            f"../data/models/plots/activation_{self.current_epoch}_epoch.png", c_grid
-        )
-
-    def training_epoch_end(self, outputs):
-        """Training epoch end.
-
-        Args:
-             outputs: outputs of train end
-        """
-        self.show_activations(self.reference_image)
-
-    # def test_epoch_end(self, test_step_outputs):  # args are defined as part of pl API
-    #     dummy_input = torch.zeros((3, self.height, self.width), device=self.device)
-    #     model_filename = "model_final.pt"
-    #     # self.to_onnx(model_filename, dummy_input, export_params=True)
-    #     self.to_torchscript(model_filename, method="script", example_inputs=dummy_input)
-    #     # wandb.save(model_filename)
+    # def makegrid(self, output, numrows):  # pylint: disable=no-self-use
+    #     """Makes grids.
     #
-    #     # flattened_logits = torch.flatten(torch.cat(test_step_outputs))
-    #     # self.logger.experiment.log(
-    #     #     {"test_logits": wandb.Histogram(flattened_logits.to("cpu")),
-    #     #      "global_step": self.global_step})
+    #     Args:
+    #          output : Tensor output
+    #          numrows : num of rows.
+    #     Returns:
+    #          c_array : gird array
+    #     """
+    #     outer = torch.Tensor.cpu(output).detach()
+    #     plt.figure(figsize=(20, 5))
+    #     b_array = np.array([]).reshape(0, outer.shape[2])
+    #     c_array = np.array([]).reshape(numrows * outer.shape[2], 0)
+    #     i = 0
+    #     j = 0
+    #     while i < outer.shape[1]:
+    #         img = outer[0][i]
+    #         b_array = np.concatenate((img, b_array), axis=0)
+    #         j += 1
+    #         if j == numrows:
+    #             c_array = np.concatenate((c_array, b_array), axis=1)
+    #             b_array = np.array([]).reshape(0, outer.shape[2])
+    #             j = 0
+    #
+    #         i += 1
+    #     return c_array
+    #
+    # def show_activations(self, x_var):
+    #     """Showns activation
+    #     Args:
+    #          x_var: x variable
+    #     """
+    #     plt.imsave(
+    #         f"{self.plot_dir}/input_{self.current_epoch}_epoch.png",
+    #         torch.Tensor.cpu(x_var[0][0]),
+    #     )
+    #
+    #     # logging layer 1 activations
+    #     out = self.model.conv1(x_var)
+    #     c_grid = self.makegrid(out, 4)
+    #     self.logger.experiment.add_image(
+    #         "layer 1", c_grid, self.current_epoch, dataformats="HW"
+    #     )
+    #
+    #     plt.imsave(
+    #         f"{self.plot_dir}/activation_{self.current_epoch}_epoch.png", c_grid
+    #     )
+    #
+    # def training_epoch_end(self, outputs):
+    #     """Training epoch end.
+    #
+    #     Args:
+    #          outputs: outputs of train end
+    #     """
+    #     self.show_activations(self.reference_image)
+
+    def test_epoch_end(self, test_step_outputs):  # args are defined as part of pl API
+        dummy_input = torch.zeros((3, self.height, self.width), device=self.device)
+        model_filename = "model_final.pt"
+        # self.to_onnx(model_filename, dummy_input, export_params=True)
+        self.to_torchscript(
+            self.model_dir + "/" + model_filename,
+            method="script",
+            example_inputs=dummy_input,
+        )
+        # wandb.save(model_filename)
+
+        flattened_logits = torch.flatten(torch.cat(test_step_outputs))
+        self.logger.experiment.log(
+            {
+                "test_logits": wandb.Histogram(flattened_logits.to("cpu")),
+                "global_step": self.global_step,
+            }
+        )
