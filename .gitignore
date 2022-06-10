@@ -1,5 +1,6 @@
 __pycache__
 .coverage
+.gitconfig
 notebook.py
 data/**/*.tar
 data/**/*.ckpt
